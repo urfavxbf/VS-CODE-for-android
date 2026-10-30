@@ -65,6 +65,45 @@ alongside the Codespaces permissions needed for the dashboard. Do not share
 tokens or add them to Git commits. The native editor explains 403/404 errors
 instead of silently opening a browser.
 
+## Edit source code directly in the Android app
+
+The **Edit repository files** action on any Codespace card now opens a native
+Compose file explorer and multiline text editor. You can navigate directories,
+edit small UTF-8 files and explicitly **Save as a Git commit**. No website or
+browser is involved in this flow.
+
+**Important:** this saves changes in the GitHub **repository default branch**,
+not in the live Codespace's uncommitted workspace. Codespace-specific changes
+and terminal commands are not available via GitHub's Codespaces REST API.
+Keep your editor open in the app for repository work; the browser fallback is
+only for features of the hosted IDE that are not yet available natively.
+
+### Additional GitHub token permission
+
+The old `codespace`-only PAT is enough to list and start Codespaces, but is
+not generally enough to edit repository contents.
+
+Prefer a **fine-grained PAT** restricted to the repository you intend to edit:
+
+- **Contents: Read and write** for saving, or Read-only for browsing.
+- **Codespaces** and **Codespaces lifecycle admin** permissions as needed for
+  the dashboard, provided those permissions are available for the token type.
+- If using a classic token for a **private** repository, the `repo` scope
+  may be required. That is a broad permission: prefer a fine-grained token.
+
+Enter the updated token via the app's Sign out / Connect flow. Never commit
+tokens or paste them into chat.
+
+### File editing boundaries
+
+- Existing text files only, up to **512 KiB**, UTF-8 encoding.
+- Every explicit Save creates one GitHub commit on the displayed branch.
+- There is a confirmation dialog containing the branch and commit message.
+- A 409 conflict does not silently overwrite a remote file; unsaved edits
+  remain on-screen for manual recovery.
+- Binary files, large files, unsaved Codespace buffers, and a live terminal
+  are **not supported** by this native editor yet.
+
 ## Native / Web split
 
 ```
