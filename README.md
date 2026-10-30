@@ -44,6 +44,27 @@ opens an empty screen, this does **not** mean your token is invalid.
 A successful CI test only verifies the Android build and emulator startup.
 It cannot prove that your private Codespace editor works on your actual phone.
 
+## Native repository file editor (no browser redirect)
+
+Open a Codespace card and tap **Edit repository files**. The Compose app can
+browse folders, open UTF-8 text files up to 512 KiB, make changes, and create an
+explicit Git commit on that repository's **default branch**. The commit requires
+a confirmation and a message; unsaved edits are guarded by a discard dialog.
+
+**Important:** This edits files on GitHub, not the running Codespace VM's working
+tree. Changes in an uncommitted Codespace are not visible in this editor, and a
+GitHub commit does not automatically update a running VM's local branch.
+The terminal and live debugging environment still require a separate secure
+workspace connection.
+
+**Permissions:** The existing Codespaces-only classic PAT may read public
+repositories but cannot commit files. For a classic PAT GitHub requires the
+broad `repo` scope to write repository contents. Prefer a **fine-grained PAT**
+restricted to the selected repositories with Contents read/write permissions,
+alongside the Codespaces permissions needed for the dashboard. Do not share
+tokens or add them to Git commits. The native editor explains 403/404 errors
+instead of silently opening a browser.
+
 ## Native / Web split
 
 ```
