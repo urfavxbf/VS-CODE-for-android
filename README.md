@@ -26,6 +26,24 @@ Sign-in uses a **GitHub personal access token** in v0.1 because reliable first-p
 
 **Security note:** A personal token can grant sensitive access. Only enter tokens you generated yourself, and revoke a compromised token in GitHub settings. Do not paste tokens into repository files, issues, screenshots, or chat.
 
+## Troubleshooting: Codespace list works, but editor is blank
+
+If your GitHub token connects and shows Codespaces but tapping **Try in app (beta)**
+opens an empty screen, this does **not** mean your token is invalid.
+
+- The personal access token authenticates the **REST dashboard only**.
+  The hosted VS Code editor needs a separate GitHub browser login/session.
+- Use **Open in browser** on the Codespace card (recommended). Sign in to
+  GitHub in Chrome/your default browser if asked.
+- The embedded editor is an optional beta. It never receives your PAT.
+  If it cannot reach the VS Code workbench, it now shows **Open in browser**
+  and **Retry**, rather than silently displaying an empty WebView.
+- We removed invasive CSS that previously hid all desktop VS Code panels;
+  the browser-hosted editor controls its own workspace layout.
+
+A successful CI test only verifies the Android build and emulator startup.
+It cannot prove that your private Codespace editor works on your actual phone.
+
 ## Native / Web split
 
 ```
