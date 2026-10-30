@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.webkit.CookieManager
-import android.webkit.SslErrorHandler
+import android.net.http.SslErrorHandler
 import android.webkit.SslError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceError
