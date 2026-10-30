@@ -7,7 +7,7 @@ import dev.codespacemobile.data.remote.RepositoryContentDto
 import dev.codespacemobile.data.repository.GitHubFileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.asStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import javax.inject.Inject
