@@ -12,6 +12,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,12 +52,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import dev.codespacemobile.domain.CodespaceUrlPolicy
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
+fun EditorScreen(
+    title: String,
+    url: String,
+    repositoryName: String,
+    onEditRepository: () -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     var webView by remember { mutableStateOf<WebView?>(null) }
     var pane by remember { mutableStateOf(EditorScript.Pane.EDITOR) }
@@ -63,6 +72,7 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var browserHint by remember { mutableStateOf(false) }
     var signInRequired by remember { mutableStateOf(false) }
+    var workbenchReady by remember { mutableStateOf(false) }
     val trusted = remember(url) { CodespaceUrlPolicy.isTrusted(url) }
 
     fun openInBrowser() {
@@ -71,6 +81,15 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (_: Exception) {
             error = "No browser found. Install Chrome or another browser and retry."
+        }
+    }
+
+    // Some WebViews never call onPageFinished (SSO/network stalls). Avoid endless blank UI.
+    LaunchedEffect(url) {
+        delay(18_000L)
+        if (!workbenchReady && !signInRequired && error == null) {
+            browserHint = true
+            loading = false
         }
     }
 
@@ -92,6 +111,12 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = onEditRepository,
+                        enabled = repositoryName.count { it == '/' } == 1
+                    ) {
+                        Icon(Icons.Default.Folder, contentDescription = "Edit repository files in app")
+                    }
                     IconButton(onClick = ::openInBrowser, enabled = trusted) {
                         Icon(Icons.Default.OpenInBrowser, contentDescription = "Open in external browser")
                     }
@@ -110,8 +135,20 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                     NavigationBarItem(
                         selected = pane == destination,
                         onClick = {
-                            pane = destination
-                            webView?.evaluateJavascript(EditorScript.activate(destination), null)
+                            if (!workbenchReady) {
+                                if (destination == EditorScript.Pane.TERMINAL) {
+                                    error = "A live Codespaces terminal is not available via the GitHub REST API. " +
+                                        "Use the full Codespaces web editor for terminal access."
+                                    browserHint = true
+                                    loading = false
+                                } else {
+                                    // Code / Files / Git remain usable via the native repository editor.
+                                    onEditRepository()
+                                }
+                            } else {
+                                pane = destination
+                                webView?.evaluateJavascript(EditorScript.activate(destination), null)
+                            }
                         },
                         label = { Text(label) },
                         icon = {
@@ -140,27 +177,9 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                     signInRequired -> "GitHub sign-in is required for the hosted editor. " +
                         "Your PAT connects the dashboard only; the editor needs its own browser session."
                     error != null -> error
-                    browserHint -> "The VS Code editor did not appear in the embedded view. " +
-                        "Open it in your browser for full GitHub sign-in and editing."
+                    browserHint -> "The hosted VS Code workbench did not load in Android WebView. " +
+                        "You can still browse and edit repository files directly in this app."
                     else -> null
-                }
-                recoveryMessage?.let { message ->
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(message, color = MaterialTheme.colorScheme.onSurface)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = ::openInBrowser) { Text("Open in browser") }
-                            OutlinedButton(onClick = {
-                                signInRequired = false
-                                browserHint = false
-                                error = null
-                                loading = true
-                                webView?.reload()
-                            }) { Text("Retry") }
-                        }
-                    }
                 }
                 Box(Modifier.fillMaxSize()) {
                     AndroidView(
@@ -201,6 +220,7 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                                     override fun onPageFinished(view: WebView, loadedUrl: String) {
                                         super.onPageFinished(view, loadedUrl)
                                         loading = false
+                                        workbenchReady = false
                                         if (CodespaceUrlPolicy.isSignInPage(loadedUrl)) {
                                             signInRequired = true
                                             browserHint = true
@@ -208,13 +228,19 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                                             // Only make non-destructive touch improvements.
                                             // Never hide the hosted workbench's panes.
                                             view.evaluateJavascript(EditorScript.BOOTSTRAP, null)
+                                            loading = true
                                             view.postDelayed({
                                                 if (view.url == loadedUrl && !signInRequired) {
                                                     view.evaluateJavascript(EditorScript.READINESS_CHECK) { ready ->
-                                                        if (ready != "true") browserHint = true
+                                                        workbenchReady = ready == "true"
+                                                        browserHint = !workbenchReady
+                                                        loading = false
                                                     }
                                                 }
-                                            }, 9000L)
+                                            }, 6000L)
+                                        } else {
+                                            // A GitHub landing or unsupported page is not a VS Code editor.
+                                            browserHint = true
                                         }
                                     }
 
@@ -225,6 +251,7 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                                         if (request.isForMainFrame) {
                                             error = "Editor connection failed. The browser can retry GitHub sign-in."
                                             browserHint = true
+                                            workbenchReady = false
                                             loading = false
                                         }
                                     }
@@ -235,23 +262,65 @@ fun EditorScreen(title: String, url: String, onBack: () -> Unit) {
                                         handler.cancel()
                                         error = "Secure connection failed. The unsafe page was blocked."
                                         browserHint = true
+                                        workbenchReady = false
                                         loading = false
                                     }
                                 }
+                                setBackgroundColor(android.graphics.Color.BLACK)
                                 loadUrl(url)
                                 webView = this
                             }
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-                    if (loading) {
+                    // Cover incomplete/blank WebViews with an actionable native screen.
+                    if (recoveryMessage != null) {
                         Column(
-                            modifier = Modifier.align(Alignment.Center),
+                            modifier = Modifier.fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Code, contentDescription = null)
+                            Text(
+                                "Embedded VS Code unavailable",
+                                style = MaterialTheme.typography.headlineSmall
+                            )
+                            Text(recoveryMessage, modifier = Modifier.padding(vertical = 16.dp))
+                            Button(
+                                onClick = onEditRepository,
+                                enabled = repositoryName.count { it == '/' } == 1,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Folder, contentDescription = null)
+                                Text(" Edit repository files in app")
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    signInRequired = false
+                                    browserHint = false
+                                    workbenchReady = false
+                                    error = null
+                                    loading = true
+                                    webView?.reload()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Retry hosted editor") }
+                            OutlinedButton(
+                                onClick = ::openInBrowser,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("Open live Codespace in browser") }
+                        }
+                    } else if (loading) {
+                        Column(
+                            modifier = Modifier.fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.Center
                         ) {
                             CircularProgressIndicator()
-                            Text("Connecting to VS Code…")
+                            Text("Connecting to hosted VS Code…")
                         }
                     }
                 }
