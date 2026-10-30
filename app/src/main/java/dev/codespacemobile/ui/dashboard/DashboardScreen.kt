@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Add
@@ -226,15 +227,38 @@ private fun CodespaceCard(
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(item.repository, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("Status: ${item.state}", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val context = LocalContext.current
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (item.isAvailable) {
-                    Button(onClick = onOpen, enabled = !busy && CodespaceUrlPolicy.isTrusted(item.webUrl)) {
-                        Icon(Icons.Default.Code, null)
-                        Text(" Open editor")
+                    val canOpen = !busy && CodespaceUrlPolicy.isTrusted(item.webUrl)
+                    Button(
+                        onClick = {
+                            item.webUrl?.let { link ->
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                            }
+                        },
+                        enabled = canOpen,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null)
+                        Text(" Open in browser")
                     }
+                    OutlinedButton(
+                        onClick = onOpen,
+                        enabled = canOpen,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Code, contentDescription = null)
+                        Text(" Try in app (beta)")
+                    }
+                    Text(
+                        "The GitHub editor needs a browser sign-in separate from your API token.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                     OutlinedButton(onClick = onStop, enabled = !busy) {
                         Icon(Icons.Default.Stop, null)
-                        Text(" Stop")
+                        Text(" Stop Codespace")
                     }
                 } else if (item.isStopped) {
                     Button(onClick = onStart, enabled = !busy) {
