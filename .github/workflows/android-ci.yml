@@ -73,3 +73,40 @@ jobs:
           name: emulator-test-results
           path: app/build/outputs/androidTest-results
           retention-days: 14
+
+  publish-debug:
+    name: Publish APK to GitHub Releases
+    runs-on: ubuntu-latest
+    needs: [check, emulator-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: CodespaceMobileNext-debug
+          path: release
+      - name: Verify APK and publish latest debug release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd release
+          test -s app-debug.apk
+          sha256sum --check app-debug.apk.sha256
+          cd ..
+          if gh release view android-debug-latest >/dev/null 2>&1; then
+            gh release upload android-debug-latest \
+              "release/app-debug.apk#VS-CODE-for-android-debug.apk" \
+              "release/app-debug.apk.sha256" --clobber
+          else
+            gh release create android-debug-latest \
+              "release/app-debug.apk#VS-CODE-for-android-debug.apk" \
+              "release/app-debug.apk.sha256" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "VS Code for Android — Latest Debug APK" \
+              --notes "Unofficial test APK for Android 8.0+. Built on main and published only after unit tests, Android lint, APK build, and emulator launch pass. Not a production-signed release. GitHub PAT is never included in the APK."
+          fi
+          echo "Download: https://github.com/${GITHUB_REPOSITORY}/releases/download/android-debug-latest/VS-CODE-for-android-debug.apk" >> "$GITHUB_STEP_SUMMARY"
