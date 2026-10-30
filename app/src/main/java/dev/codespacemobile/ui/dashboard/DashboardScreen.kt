@@ -53,7 +53,7 @@ import dev.codespacemobile.domain.CodespaceUrlPolicy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel, onOpen: (Codespace) -> Unit) {
+fun DashboardScreen(viewModel: DashboardViewModel, onOpen: (Codespace) -> Unit, onEditRepo: (Codespace) -> Unit) {
     val state by viewModel.state.collectAsState()
     var stopCandidate by remember { mutableStateOf<Codespace?>(null) }
     var showCreate by remember { mutableStateOf(false) }
@@ -116,6 +116,7 @@ fun DashboardScreen(viewModel: DashboardViewModel, onOpen: (Codespace) -> Unit) 
                             item = item,
                             busy = state.busyCodeSpace == item.name,
                             onOpen = { onOpen(item) },
+                            onEditRepo = { onEditRepo(item) },
                             onStart = { viewModel.changeState(item, true) },
                             onStop = { stopCandidate = item }
                         )
@@ -219,6 +220,7 @@ private fun CodespaceCard(
     item: Codespace,
     busy: Boolean,
     onOpen: () -> Unit,
+    onEditRepo: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit
 ) {
@@ -227,6 +229,17 @@ private fun CodespaceCard(
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(item.repository, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("Status: ${item.state}", style = MaterialTheme.typography.labelMedium)
+            if (item.repository.isNotBlank()) {
+                Button(onClick = onEditRepo, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Code, contentDescription = null)
+                    Text(" Edit repository files")
+                }
+                Text(
+                    "Edit and commit GitHub repository files natively. Live Codespace files and terminal are separate; requires GitHub Contents permissions.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
             val context = LocalContext.current
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (item.isAvailable) {

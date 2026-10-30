@@ -16,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.codespacemobile.ui.dashboard.DashboardScreen
 import dev.codespacemobile.ui.dashboard.DashboardViewModel
 import dev.codespacemobile.ui.editor.EditorScreen
+import dev.codespacemobile.ui.repo.RepositoryEditorScreen
 import dev.codespacemobile.ui.theme.CodespaceTheme
 
 @AndroidEntryPoint
@@ -33,10 +34,28 @@ private fun MainNavigation() {
     NavHost(navController, startDestination = "dashboard") {
         composable("dashboard") {
             val model: DashboardViewModel = hiltViewModel()
-            DashboardScreen(model, onOpen = { item ->
-                val url = item.webUrl ?: return@DashboardScreen
-                navController.navigate("editor?name=${Uri.encode(item.title)}&url=${Uri.encode(url)}")
+            DashboardScreen(
+                viewModel = model,
+                onOpen = { item ->
+                    val url = item.webUrl ?: return@DashboardScreen
+                    navController.navigate("editor?name=${Uri.encode(item.title)}&url=${Uri.encode(url)}")
+                },
+                onEditRepo = { item ->
+                    navController.navigate("repository?name=${Uri.encode(item.repository)}")
+                }
+            )
+        }
+        composable(
+            "repository?name={name}",
+            arguments = listOf(navArgument("name") {
+                type = NavType.StringType
+                defaultValue = ""
             })
+        ) { entry ->
+            RepositoryEditorScreen(
+                repositoryName = entry.arguments?.getString("name").orEmpty(),
+                onBack = { navController.popBackStack() }
+            )
         }
         composable(
             "editor?name={name}&url={url}",
