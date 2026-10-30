@@ -44,6 +44,22 @@ opens an empty screen, this does **not** mean your token is invalid.
 A successful CI test only verifies the Android build and emulator startup.
 It cannot prove that your private Codespace editor works on your actual phone.
 
+## Blank Codespace workspace recovery
+
+If the embedded Codespace shows a white/empty screen (Code, Files, Git, and
+Terminal tabs all empty), it may be an unsupported VS Code WebView session.
+The native app now checks for a real workbench, shows a visible error and
+provides **Edit repository files in app** as the primary recovery action.
+The native GitHub repository file editor does not require opening Chrome.
+
+The hosted Codespace terminal cannot be accessed through the public
+Codespaces REST API; do not mistake blank WebView panels for live terminal
+support. The native editor works on committed GitHub repository files
+instead of unsaved files inside a running Codespace container.
+
+If you previously installed a debug build, update from the latest successful
+GitHub Actions run on `main`. The older APK won't gain these controls on its own.
+
 ## Native repository file editor (no browser redirect)
 
 Open a Codespace card and tap **Edit repository files**. The Compose app can
