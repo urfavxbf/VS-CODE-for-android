@@ -4,6 +4,21 @@ Native Android dashboard for GitHub Codespaces plus a full-width, single-pane ed
 
 > Source repository: https://github.com/urfavxbf/VS-CODE-for-android. GitHub Actions must pass before a debug APK can be considered build-verified. Live Codespaces editor/login functionality still needs a device test.
 
+## Download Android APK (no chat attachment required)
+
+**[Download the latest test APK from GitHub Releases](https://github.com/urfavxbf/VS-CODE-for-android/releases/download/android-debug-latest/VS-CODE-for-android-debug.apk)**
+
+This stable download is published from successful `main` CI runs only after unit
+tests, lint, APK build, and Android emulator smoke test pass. The checksum is
+attached to the release. This is a **debug/test build**, not a production-signed
+app store release. Release files are public; no API keys or user tokens are
+embedded in the APK.
+
+If the APK is not listed yet, see [GitHub Actions artifacts](https://github.com/urfavxbf/VS-CODE-for-android/actions)
+and download `CodespaceMobileNext-debug` from a successful run (GitHub sign-in
+required for Actions artifacts).
+
+
 ## Features
 
 - Kotlin, Jetpack Compose, Material 3, MVVM, Hilt, Retrofit and Room.
