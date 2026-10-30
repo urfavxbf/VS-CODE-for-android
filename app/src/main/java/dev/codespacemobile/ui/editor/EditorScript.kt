@@ -16,57 +16,31 @@ object EditorScript {
           var style = document.createElement('style');
           style.id = 'codespace-mobile-next-layout';
           style.textContent = `
-            html.cm-next .monaco-workbench .part.activitybar,
-            html.cm-next .monaco-workbench .part.statusbar { display: none !important; }
-            html.cm-next .monaco-workbench .part.sidebar,
-            html.cm-next .monaco-workbench .part.editor,
-            html.cm-next .monaco-workbench .part.panel,
-            html.cm-next .monaco-workbench .part.auxiliarybar {
-              position: absolute !important;
-              inset: 0 !important;
-              min-width: 0 !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              height: 100% !important;
-              visibility: hidden !important;
-              pointer-events: none !important;
-              opacity: 0 !important;
-              z-index: 0 !important;
-            }
-            html.cm-next[data-cm-pane='editor'] .monaco-workbench .part.editor,
-            html.cm-next[data-cm-pane='sidebar'] .monaco-workbench .part.sidebar,
-            html.cm-next[data-cm-pane='panel'] .monaco-workbench .part.panel {
-              visibility: visible !important;
-              pointer-events: auto !important;
-              opacity: 1 !important;
-              z-index: 10 !important;
-            }
-            html.cm-next .monaco-list-row { min-height: 40px !important; }
-            html.cm-next .monaco-workbench .part.sidebar .content,
-            html.cm-next .monaco-workbench .part.panel .content { min-width: 0 !important; }
-            html.cm-next .breadcrumbs-control { display: none !important; }
+            .monaco-workbench .monaco-list-row { min-height: 36px; }
+            .monaco-workbench .part.editor { min-width: 0; }
+            .monaco-workbench .part.sidebar .content { min-width: 0; }
+            .monaco-workbench .action-label { min-height: 36px; }
           `;
           document.head.appendChild(style);
-          document.documentElement.classList.add('cm-next');
-          document.documentElement.setAttribute('data-cm-pane', 'editor');
-          window.__cmNextSetPane = function (pane) {
-            if (['editor', 'sidebar', 'panel'].indexOf(pane) === -1) return;
-            document.documentElement.setAttribute('data-cm-pane', pane);
-            window.requestAnimationFrame(function () {
-              window.dispatchEvent(new Event('resize'));
-            });
-          };
+        })();
+    """
+
+    /**
+     * Probe page readiness without hiding the hosted UI. A false result triggers
+     * an in-app recovery prompt and an external-browser fallback.
+     */
+    const val READINESS_CHECK = """
+        (function () {
+          var root = document.querySelector('.monaco-workbench');
+          if (!root) return false;
+          var editor = root.querySelector('.part.editor, .monaco-editor, .editor-instance');
+          return !!(editor && editor.getBoundingClientRect().width > 48);
         })();
     """
 
     fun activate(pane: Pane): String {
-        val target = when (pane) {
-            Pane.EDITOR -> "editor"
-            Pane.FILES, Pane.SOURCE_CONTROL -> "sidebar"
-            Pane.TERMINAL -> "panel"
-        }
-        val action = when (pane) {
-            Pane.EDITOR -> ""
+         val action = when (pane) {
+            Pane.EDITOR -> "workbench.action.focusActiveEditorGroup"
             Pane.FILES -> "workbench.view.explorer"
             Pane.SOURCE_CONTROL -> "workbench.view.scm"
             Pane.TERMINAL -> "workbench.action.terminal.toggleTerminal"
@@ -74,14 +48,21 @@ object EditorScript {
         return """
             (function () {
               var command = '$action';
-              if (command) {
-                var root = document.querySelector('.monaco-workbench');
-                var candidate = root && root.querySelector(
-                  '[id="' + command + '"], [data-id="' + command + '"]'
-                );
-                if (candidate) candidate.click();
+              var root = document.querySelector('.monaco-workbench');
+              if (!root) return;
+              if (command === 'workbench.action.focusActiveEditorGroup') {
+                var editor = root.querySelector('.part.editor .monaco-editor textarea.inputarea, .part.editor .monaco-editor');
+                if (editor) editor.focus();
+                return;
               }
-              if (window.__cmNextSetPane) window.__cmNextSetPane('$target');
+              var candidate = root.querySelector(
+                '[id="' + command + '"] .action-label, ' +
+                '[id="' + command + '"], ' +
+                '[data-id="' + command + '"] .action-label, ' +
+                '[data-id="' + command + '"]'
+              );
+              if (candidate) candidate.click();
+              // Never force hidden desktop panels: the hosted workbench manages layout.
             })();
         """.trimIndent()
     }

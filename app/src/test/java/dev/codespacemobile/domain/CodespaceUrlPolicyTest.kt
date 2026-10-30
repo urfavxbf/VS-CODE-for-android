@@ -11,6 +11,17 @@ class CodespaceUrlPolicyTest {
         assertTrue(CodespaceUrlPolicy.isTrusted("https://project.githubpreview.dev/"))
     }
 
+    @Test fun identifiesHostedEditorAndSeparateGitHubLogin() {
+        assertTrue(CodespaceUrlPolicy.isEditorUrl("https://bright-fox-123.app.github.dev/"))
+        assertTrue(CodespaceUrlPolicy.isEditorUrl("https://foo.githubpreview.dev/"))
+        assertFalse(CodespaceUrlPolicy.isEditorUrl("https://github.com/login"))
+        assertTrue(CodespaceUrlPolicy.isSignInPage("https://github.com/login?return_to=%2Fcodespaces"))
+        assertTrue(CodespaceUrlPolicy.isSignInPage("https://github.com/sessions/verified-device"))
+        assertFalse(CodespaceUrlPolicy.isSignInPage("https://bright-fox-123.app.github.dev/"))
+        assertFalse(CodespaceUrlPolicy.isSignInPage("https://github.com.evil.com/login"))
+        assertFalse(CodespaceUrlPolicy.isSignInPage("http://github.com/login"))
+    }
+
     @Test fun rejectsUnexpectedNavigation() {
         assertFalse(CodespaceUrlPolicy.isTrusted("http://github.com"))
         assertFalse(CodespaceUrlPolicy.isTrusted("https://github.com.evil.com"))
