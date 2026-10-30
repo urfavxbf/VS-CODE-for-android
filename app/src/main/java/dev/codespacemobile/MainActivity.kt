@@ -40,7 +40,7 @@ private fun MainNavigation() {
                     val url = item.webUrl ?: return@DashboardScreen
                     navController.navigate("editor?name=${Uri.encode(item.title)}&url=${Uri.encode(url)}")
                 },
-                onEditRepository = { item ->
+                onEditRepo = { item ->
                     navController.navigate("repository?name=${Uri.encode(item.repository)}")
                 }
             )
