@@ -38,7 +38,7 @@ private fun MainNavigation() {
                 viewModel = model,
                 onOpen = { item ->
                     val url = item.webUrl ?: return@DashboardScreen
-                    navController.navigate("editor?name=${Uri.encode(item.title)}&url=${Uri.encode(url)}")
+                    navController.navigate("editor?name=${Uri.encode(item.title)}&url=${Uri.encode(url)}&repo=${Uri.encode(item.repository)}")
                 },
                 onEditRepo = { item ->
                     navController.navigate("repository?name=${Uri.encode(item.repository)}")
@@ -58,15 +58,23 @@ private fun MainNavigation() {
             )
         }
         composable(
-            "editor?name={name}&url={url}",
+            "editor?name={name}&url={url}&repo={repo}",
             arguments = listOf(
                 navArgument("name") { type = NavType.StringType; defaultValue = "Codespace" },
-                navArgument("url") { type = NavType.StringType; defaultValue = "" }
+                navArgument("url") { type = NavType.StringType; defaultValue = "" },
+                navArgument("repo") { type = NavType.StringType; defaultValue = "" }
             )
         ) { entry ->
             EditorScreen(
                 title = entry.arguments?.getString("name").orEmpty(),
                 url = entry.arguments?.getString("url").orEmpty(),
+                repositoryName = entry.arguments?.getString("repo").orEmpty(),
+                onEditRepository = {
+                    val repository = entry.arguments?.getString("repo").orEmpty()
+                    if (repository.isNotBlank()) {
+                        navController.navigate("repository?name=${Uri.encode(repository)}")
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }
