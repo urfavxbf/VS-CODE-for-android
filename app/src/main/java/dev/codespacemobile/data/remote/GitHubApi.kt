@@ -5,7 +5,6 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
-import retrofit2.Response
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -50,5 +49,68 @@ interface GitHubApi {
     @POST("user/codespaces/{name}/stop")
     suspend fun stopCodespace(@Path("name") name: String): CodespaceDto
 
+
+    @GET("repos/{owner}/{repo}")
+    suspend fun getRepositoryInfo(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String
+    ): RepositoryInfoDto
+
+    @GET("repos/{owner}/{repo}/contents")
+    suspend fun listRepositoryRoot(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Query("ref") ref: String
+    ): List<RepositoryContentDto>
+
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun listRepositoryDirectory(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path(value = "path", encoded = true) path: String,
+        @Query("ref") ref: String
+    ): List<RepositoryContentDto>
+
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun getRepositoryFile(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path(value = "path", encoded = true) path: String,
+        @Query("ref") ref: String
+    ): RepositoryContentDto
+
+    @PUT("repos/{owner}/{repo}/contents/{path}")
+    suspend fun updateRepositoryFile(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path(value = "path", encoded = true) path: String,
+        @Body body: UpdateRepositoryFileRequest
+    ): UpdateRepositoryFileResponse
+
 }
 
+
+data class RepositoryInfoDto(
+    @Json(name = "default_branch") val defaultBranch: String
+)
+
+data class RepositoryContentDto(
+    val name: String,
+    val path: String,
+    val type: String,
+    val sha: String,
+    val size: Long = 0,
+    val encoding: String? = null,
+    val content: String? = null
+)
+
+data class UpdateRepositoryFileRequest(
+    val message: String,
+    val content: String,
+    val sha: String,
+    val branch: String
+)
+
+data class UpdateRepositoryFileResponse(
+    val content: RepositoryContentDto? = null
+)
