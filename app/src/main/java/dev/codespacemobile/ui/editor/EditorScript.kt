@@ -25,14 +25,22 @@ object EditorScript {
         })();
     """
 
+    /**
+     * Probe page readiness without hiding the hosted UI. A false result triggers
+     * an in-app recovery prompt and an external-browser fallback.
+     */
+    const val READINESS_CHECK = """
+        (function () {
+          var root = document.querySelector('.monaco-workbench');
+          if (!root) return false;
+          var editor = root.querySelector('.part.editor, .monaco-editor, .editor-instance');
+          return !!(editor && editor.getBoundingClientRect().width > 48);
+        })();
+    """
+
     fun activate(pane: Pane): String {
-        val target = when (pane) {
-            Pane.EDITOR -> "editor"
-            Pane.FILES, Pane.SOURCE_CONTROL -> "sidebar"
-            Pane.TERMINAL -> "panel"
-        }
-        val action = when (pane) {
-            Pane.EDITOR -> ""
+         val action = when (pane) {
+            Pane.EDITOR -> "workbench.action.focusActiveEditorGroup"
             Pane.FILES -> "workbench.view.explorer"
             Pane.SOURCE_CONTROL -> "workbench.view.scm"
             Pane.TERMINAL -> "workbench.action.terminal.toggleTerminal"
@@ -40,14 +48,21 @@ object EditorScript {
         return """
             (function () {
               var command = '$action';
-              if (command) {
-                var root = document.querySelector('.monaco-workbench');
-                var candidate = root && root.querySelector(
-                  '[id="' + command + '"], [data-id="' + command + '"]'
-                );
-                if (candidate) candidate.click();
+              var root = document.querySelector('.monaco-workbench');
+              if (!root) return;
+              if (command === 'workbench.action.focusActiveEditorGroup') {
+                var editor = root.querySelector('.part.editor .monaco-editor textarea.inputarea, .part.editor .monaco-editor');
+                if (editor) editor.focus();
+                return;
               }
-              // Keep hosted VS Code layout intact; do not hide its panes.
+              var candidate = root.querySelector(
+                '[id="' + command + '"] .action-label, ' +
+                '[id="' + command + '"], ' +
+                '[data-id="' + command + '"] .action-label, ' +
+                '[data-id="' + command + '"]'
+              );
+              if (candidate) candidate.click();
+              // Never force hidden desktop panels: the hosted workbench manages layout.
             })();
         """.trimIndent()
     }
