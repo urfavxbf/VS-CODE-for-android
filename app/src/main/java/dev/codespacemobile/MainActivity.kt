@@ -16,7 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.codespacemobile.ui.dashboard.DashboardScreen
 import dev.codespacemobile.ui.dashboard.DashboardViewModel
 import dev.codespacemobile.ui.editor.EditorScreen
-import dev.codespacemobile.ui.repository.RepositoryEditorScreen
+import dev.codespacemobile.ui.repo.RepositoryEditorScreen
 import dev.codespacemobile.ui.theme.CodespaceTheme
 
 @AndroidEntryPoint
@@ -53,7 +53,7 @@ private fun MainNavigation() {
             })
         ) { entry ->
             RepositoryEditorScreen(
-                repoName = entry.arguments?.getString("name").orEmpty(),
+                repositoryName = entry.arguments?.getString("name").orEmpty(),
                 onBack = { navController.popBackStack() }
             )
         }
