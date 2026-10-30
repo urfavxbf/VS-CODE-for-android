@@ -27,69 +27,7 @@ data class CodespaceDto(
 
 data class CreateCodespaceRequest(val ref: String)
 
-data class RepositoryMetadataDto(
-    @Json(name = "default_branch") val defaultBranch: String
-)
-
-data class RepositoryEntryDto(
-    val name: String = "",
-    val path: String = "",
-    val type: String = "",
-    val sha: String = "",
-    val size: Long = 0,
-    val content: String? = null,
-    val encoding: String? = null
-)
-
-data class RepositorySaveRequest(
-    val message: String,
-    val content: String,
-    val sha: String,
-    val branch: String
-)
-
-data class RepositorySaveResponse(
-    val content: RepositoryEntryDto? = null
-)
-
 interface GitHubApi {
-    @GET("repos/{owner}/{repo}")
-    suspend fun repositoryMetadata(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String
-    ): RepositoryMetadataDto
-
-    @GET("repos/{owner}/{repo}/contents")
-    suspend fun repositoryRoot(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String,
-        @Query("ref") ref: String
-    ): List<RepositoryEntryDto>
-
-    @GET("repos/{owner}/{repo}/contents/{path}")
-    suspend fun repositoryDirectory(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String,
-        @Path(value = "path", encoded = true) path: String,
-        @Query("ref") ref: String
-    ): List<RepositoryEntryDto>
-
-    @GET("repos/{owner}/{repo}/contents/{path}")
-    suspend fun repositoryFile(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String,
-        @Path(value = "path", encoded = true) path: String,
-        @Query("ref") ref: String
-    ): RepositoryEntryDto
-
-    @PUT("repos/{owner}/{repo}/contents/{path}")
-    suspend fun saveRepositoryFile(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String,
-        @Path(value = "path", encoded = true) path: String,
-        @Body body: RepositorySaveRequest
-    ): Response<RepositorySaveResponse>
-
     @GET("user")
     suspend fun validateToken(@Header("Authorization") bearer: String): GitHubUserDto
 
